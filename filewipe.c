@@ -24,7 +24,7 @@
 #define WIPE_PTRN3_CHAR 0x3a  // 00111010
 #define WIPE_PTRN4_CHAR 0xc5  // 11000101
 #define MSG_BANNER      "AB Data Services"
-#define MSG_VERSION     "1.4"
+#define MSG_VERSION     "1.5"
 
 #ifdef WINDOWS
 #define MSG_MODE   MB_OK | MB_ICONERROR
@@ -34,9 +34,15 @@
   do { char cMsg[ 2048 ] = { 0 }; snprintf( cMsg, 2048, msg, errno );  \
     perror( cMsg ); exit( EXIT_FAILURE ); } while( 0 )
 
-extern char *basename (const char *__filename) __THROW __nonnull ((1));
-
 void doOSFileWipe( char *name );
+char *getFileBaseName( char *pathName );
+#ifdef WINDOWS
+void DisplayError( char *errText );
+void DisplayErrorMsg( void );
+void winFileWipe( char *name );
+#else
+void unixFileWipe( char *name );
+#endif
 
 int main( int argc, char *argv[] )  {
   int   retVal         = 0;
@@ -47,7 +53,7 @@ int main( int argc, char *argv[] )  {
   char  outMsg[ 2048 ] = { 0 };
 
   fprintf( stdout, "%s: Secure file overwrite and delete utility v%s\n",
-           basename( argv[ 0 ] ), MSG_VERSION );
+           getFileBaseName( argv[ 0 ] ), MSG_VERSION );
   fprintf( stdout, "Copyright (c)2018-2020, %s, All rights "
            "reserved worldwide.\n\n", MSG_BANNER );
   if ( argc == 1 )  {
@@ -323,7 +329,7 @@ void winFileWipe(char *fName) {
 #else  /* ~WINDOWS */
 
 /*
- * *ix version of the actual file wiping
+ * unix/linux/aix version of the actual file wiping
  */
 void unixFileWipe(char *fName) {
   char         outMsg[2048] = { 0 };
@@ -476,7 +482,7 @@ void unixFileWipe(char *fName) {
       handle_error( msg );
     }
     tEnd = time( NULL );
-    snprintf( outMsg, 2048, "%sclosed. %d\n", ptr
+    snprintf( outMsg, 2048, "%sclosed. %d\n", ptr,
              (int) tEnd - tStart );
     fprintf( stdout, outMsg );
     free( ptr );
@@ -501,6 +507,26 @@ void doOSFileWipe( char *fName ) {
 #else  /* ~WINDOWS */
   unixFileWipe( fName );
 #endif /* ~WINDOWS */
+}
+
+/*
+ * Return pointer to the file name in complete path
+ */
+char *getFileBaseName( char *pathName )  {
+  char *pRetVal  = NULL;
+  int   iPathLen = 0;
+
+  if ( pathName && *pathName != 0 ) {
+    iPathLen = strlen( pathName );
+    if ( iPathLen > 0 )  {
+      pRetVal = pathName + iPathLen - 1;
+      while ( pRetVal > pathName && ( *pRetVal != '/' && *pRetVal != '\\' ))
+        pRetVal--;
+      if ( pRetVal > pathName && ( *pRetVal == '/' || *pRetVal == '\\' ))
+        pRetVal++;
+    }
+  }
+  return pRetVal;
 }
 
 /* filewipe.c */
