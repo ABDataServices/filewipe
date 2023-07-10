@@ -56,7 +56,7 @@ int main( int argc, char *argv[] )  {
   int   memSize        = 10485760;
   void* memblk         = NULL;
   char  outMsg[ 2048 ] = { 0 };
-  int   len            = ExtractVersionLen( VERSION_NUMBER )
+  int   len            = ExtractVersionLen( VERSION_NUMBER );
   char* rev            = NULL;
 
   /*
