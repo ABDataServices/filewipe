@@ -24,7 +24,12 @@
 #define WIPE_PTRN3_CHAR 0x3a  // 00111010
 #define WIPE_PTRN4_CHAR 0xc5  // 11000101
 #define MSG_BANNER      "AB Data Services"
-#define MSG_VERSION     "1.5"
+#define VERSION_NUMBER  "$ 106 "
+/*
+ * Extract from the character after the first space and before the last space
+ */
+#define ExtractVersion( x )    ( strchr( x, ' ' ) + 1 )
+#define ExtractVersionLen( x ) ( strrchr( x, ' ' ) - ( strchr( x, ' ' ) + 1 ) )
 
 #ifdef WINDOWS
 #define MSG_MODE   MB_OK | MB_ICONERROR
@@ -49,18 +54,33 @@ int main( int argc, char *argv[] )  {
   int   numFiles       = argc - 1;
   int   i;
   int   memSize        = 10485760;
-  void *memblk         = NULL;
+  void* memblk         = NULL;
   char  outMsg[ 2048 ] = { 0 };
+  int   len            = ExtractVersionLen( VERSION_NUMBER )
+  char* rev            = NULL;
+
+  /*
+   * Extract the revision number only
+   */
+  if ( len > 1 )
+    {
+      rev = malloc( len + 1 );
+      if ( rev )
+        {
+          memset( rev, 0, len );
+          strncpy( rev, ExtractVersion( VERSION_NUMBER ), len );
+        }
+    }
 
   fprintf( stdout, "%s: Secure file overwrite and delete utility v%s\n",
-           getFileBaseName( argv[ 0 ] ), MSG_VERSION );
+           getFileBaseName( argv[ 0 ] ), rev ? rev:  VERSION_NUMBER );
   fprintf( stdout, "Copyright (c)2018-2020, %s, All rights "
            "reserved worldwide.\n\n", MSG_BANNER );
   if ( argc == 1 )  {
     snprintf( outMsg, 2048,
               "usage: %s <file1> [<file2> [<file3>[...<fileN>]]]\n",
               argv[ 0 ] );
-    fprintf( stderr, outMsg );
+    fputs( stderr, outMsg );
     exit( 1 );
   }
   if ( ( memblk = malloc( memSize ) ) != NULL )  {
@@ -75,6 +95,8 @@ int main( int argc, char *argv[] )  {
               memSize, errno );
     handle_error( outMsg );
   }
+  if ( rev )
+    free( rev );
   return retVal;
 }
 
@@ -142,7 +164,7 @@ void winFileWipe(char *fName) {
         ) == NULL )
     DisplayError( "CreateFileMapping()" );
   snprintf( outMsg, sizeof( outMsg ), "Opened |%s|...\r", fName );
-  fprintf( stdout, outMsg );
+  fputs( stdout, outMsg );
   fflush( stdout );
   outMsg[ strlen( outMsg ) - 1 ] = ' ';
   ptr = strdup( outMsg );
@@ -169,7 +191,7 @@ void winFileWipe(char *fName) {
   }
   snprintf( outMsg, 2048, "%swiping file...\r",
            ptr );
-  fprintf( stdout, outMsg );
+  fputs( stdout, outMsg );
   fflush( stdout );
   outMsg[ strlen( outMsg ) - 1 ] = ' ';
   free( ptr );
@@ -296,7 +318,7 @@ void winFileWipe(char *fName) {
     DisplayError( "CloseHandle(hMapObject)" );
   }
   snprintf( outMsg, 2048, "%sunmapped...\r", ptr );
-  fprintf( stdout, outMsg );
+  fputs( stdout, outMsg );
   fflush( stdout );
   outMsg[ strlen( outMsg ) - 1 ] = ' ';
   free( ptr );
@@ -310,7 +332,7 @@ void winFileWipe(char *fName) {
   tEnd = time( NULL );
   snprintf( outMsg, 2048, "%sclosed...%d\r", ptr,
             (int) tEnd - tStart );
-  fprintf(stdout, outMsg );
+  fputs(stdout, outMsg );
   free( ptr );
   outMsg[ strlen( outMsg ) - 1 ] = ' ';
   ptr = strdup( outMsg );
@@ -321,7 +343,7 @@ void winFileWipe(char *fName) {
     DisplayError( "DeleteFileA()" );
   }
   snprintf( outMsg, 2048, "%sremoved.\n", ptr );
-  fprintf( stdout, outMsg );
+  fputs( stdout, outMsg );
   fflush( stdout );
   free( ptr );
 }
@@ -349,7 +371,7 @@ void unixFileWipe(char *fName) {
    */
   if (( fileNo = open( fName, fileMode )) != -1 ) {
     snprintf( outMsg, sizeof( outMsg ), "Opened |%s|...\r", fName );
-    fprintf( stdout, outMsg );
+    fputs( stdout, outMsg );
     fflush( stdout );
     outMsg[ strlen( outMsg ) - 1 ] = ' ';
     ptr = strdup( outMsg );
@@ -385,7 +407,7 @@ void unixFileWipe(char *fName) {
            * Let the user know we are wiping the file
            */
           snprintf( outMsg, 2048, "%swiping file...\r", ptr );
-          fprintf( stdout, outMsg );
+          fputs( stdout, outMsg );
           fflush( stdout );
           outMsg[ strlen( outMsg ) - 1 ] = ' ';
           free( ptr );
@@ -439,7 +461,7 @@ void unixFileWipe(char *fName) {
           if ( munmap( mapBlk, memSize ) != 0 )
             handle_error( "munmap() failed: %d" );
           snprintf( outMsg, 2048, "%sunmapped...\r", ptr );
-          fprintf( stdout, outMsg );
+          fputs( stdout, outMsg );
           fflush( stdout );
           outMsg[ strlen( outMsg ) - 1 ] = ' ';
           free( ptr );
@@ -470,7 +492,7 @@ void unixFileWipe(char *fName) {
       handle_error( msg );
     }
     snprintf( outMsg, 2048, "%sremoved...\r", ptr );
-    fprintf( stdout, outMsg );
+    fputs( stdout, outMsg );
     fflush( stdout );
     outMsg[ strlen( outMsg ) - 1 ] = ' ';
     free( ptr );
@@ -484,7 +506,7 @@ void unixFileWipe(char *fName) {
     tEnd = time( NULL );
     snprintf( outMsg, 2048, "%sclosed. %d\n", ptr,
              (int) tEnd - tStart );
-    fprintf( stdout, outMsg );
+    fputs( stdout, outMsg );
     free( ptr );
     memset( outMsg, 0, sizeof( outMsg ));
   }
